@@ -1,0 +1,8 @@
+version: '3'
+services:
+  judge-compile:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: judge-compile
+    working_dir: /app
