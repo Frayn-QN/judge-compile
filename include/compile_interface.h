@@ -9,17 +9,17 @@ public:
     /**
      * @brief 在文件系统保存
      */
-    virtual void save(json &) = 0;
+    virtual void save() = 0;
 
     /**
      * @brief 编译（非必须）
      */
-    virtual void compile(json &) = 0;
+    virtual void compile() = 0;
 
     /**
      * @brief 转码
      */
-    virtual void transcode(json &) = 0;
+    virtual void transcode() = 0;
     
     virtual ~CompileInterface() {};
 };

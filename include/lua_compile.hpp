@@ -7,46 +7,50 @@
 
 class LuaCompile : public CompileInterface {
 private:
+    json &taskData;
+    json &task;
+    std::string taskID;
+    fs::path taskDir;
 public:
-    LuaCompile() {};
-    ~LuaCompile() {};
+    LuaCompile(json &taskData):
+        taskData(taskData),
+        task(taskData["task"])
+    {
+        taskID = task["id"];
+        taskDir = FILE_ROOT_PATH + taskID;
 
-    void save(json &taskData) override {
-        json task = taskData["task"];
-        json answer = task["answer"];
-        json extra = taskData["extra"];
-        std::string id = task["id"];
-        
-        fs::path dir(FILE_ROOT_PATH + id);
-        if(!fs::exists(dir)) {
-            if(!fs::create_directories(dir))
+        if(!fs::exists(taskDir)) {// 创建任务目录
+            if(!fs::create_directories(taskDir))
                 throw std::runtime_error("Cannot create directory");
         }
         else // 由于id的唯一性，理论上不触发
             throw std::runtime_error("Directory already exists");
+    };
+
+    ~LuaCompile() {
+        // 移除任务目录及内容
+        fs::remove_all(taskDir);
+    };
+
+    void save() override {
+        json answer = task["answer"];
+        json extra = taskData["extra"];
 
         // answer
-        std::ofstream answerFile("main.lua");
+        std::ofstream answerFile(fs::path(taskDir / "main.lua"));
         if(!answerFile) {
             throw std::runtime_error("Cannot open file for writing");
         }
         answerFile << answer["code"].get<std::string>();    
     }
 
-    void compile(json &taskData) override {
+    void compile() override {
         // do nothing
     }
 
-    void transcode(json &taskData) override {
-        std::string id = taskData["task"]["id"];
-
-        fs::path dir(FILE_ROOT_PATH + id);
-        if(!fs::exists(dir)) {
-            throw std::runtime_error("Directory not exists");
-        }
-
+    void transcode() override {
         // main.lua
-        fs::path mainPath(dir / "main.lua");
+        fs::path mainPath(taskDir / "main.lua");
         if(!fs::exists(mainPath)) {
             throw std::runtime_error("File not exists");
         }

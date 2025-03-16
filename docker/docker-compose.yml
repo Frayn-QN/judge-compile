@@ -1,6 +1,7 @@
 version: '3'
 services:
   judge-compile:
+    network_mode: "host"
     build:
       context: ..
       dockerfile: docker/Dockerfile
