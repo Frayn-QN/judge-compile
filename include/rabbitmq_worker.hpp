@@ -28,9 +28,14 @@ public:
      * @return 是否成功
      */
     bool pullTaskData(json &taskData) {
-        std::string consume_tag = channel_input->BasicConsume(queue_input, "");
+        std::string consume_tag = channel_input->BasicConsume(
+            queue_input, "", true,
+            true,/* no_ack */
+            false/* exclusive */
+        );
         Envelope::ptr_t envelope;
         bool flag = channel_input->BasicConsumeMessage(consume_tag, envelope);
+        channel_input->BasicCancel(consume_tag);  // 释放消费者
         if(!flag) return false;
 
         std::string message = envelope->Message()->Body();

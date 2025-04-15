@@ -11,7 +11,7 @@
 #include "verilog_compile.hpp"
 #include "lua_compile.hpp"
 
-void work_func(json& taskData);
+void work_func(json taskData);
 
 int main() {
     cout << "Hello JudgeCompile!" << endl;
@@ -20,30 +20,39 @@ int main() {
 
     // 线程池配置
     wsp::workspace spc;
-    auto workbranch = spc.attach(new wsp::workbranch);
+    auto brh_id = spc.attach(new wsp::workbranch);
     // 最小线程数 最大线程数 时间间隔
-    auto supervisor = spc.attach(new wsp::supervisor(5, 10, 1000));
-    spc[supervisor].supervise(spc[workbranch]);
+    auto spv_id = spc.attach(new wsp::supervisor(10, 100, 1000));
+    spc[spv_id].supervise(spc[brh_id]);
     
     cout << "Start to Listen!" << endl;
+    
     while(true) {
         json taskData;
-        if(!mqWorker.pullTaskData(taskData)) {
+        try {
+            if(!mqWorker.pullTaskData(taskData)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            } 
+        }
+        catch (const AmqpClient::ChannelException& e) {
+            cout << e.what() << endl;
             continue;
         }
-        
+
         // 提交工作线程
-        spc.submit([&taskData] {
+        spc.submit([taskData] {
+            // 值传递，生成副本，避免循环继续使得生命周期结束
             work_func(taskData);
         });
     }
 }
 
-void work_func(json& taskData) {
+void work_func(json taskData) {
     CompileInterface *compileImpl = nullptr;
 
     std::string taskID = taskData["task"]["id"];
-    cout << "Deal with Task: " << taskID << endl;
+    std::cout << "Deal with Task: " << taskID << endl;
 
     // 取出taskData.task.answer.language
     std::string language = taskData["task"]["answer"]["language"];
@@ -65,7 +74,7 @@ void work_func(json& taskData) {
         return;
     }
 
-    cout << "Work with Task: " << taskID << endl;
+    std::cout << "Work with Task: " << taskID << endl;
     try {
         compileImpl->save();
         compileImpl->compile();
@@ -93,6 +102,8 @@ void work_func(json& taskData) {
         taskData["task"]["result"].clear();
         taskData["task"]["result"]["msg"] = "Unknown Error";
     }
+
+    std::cout << "Push back task: " << taskID << endl;
 
     // 回送TaskData
     RabbitMQPush mqWorker;

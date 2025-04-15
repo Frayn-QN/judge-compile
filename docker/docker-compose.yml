@@ -4,6 +4,6 @@ services:
     network_mode: "host"
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/DockerFile
     container_name: judge-compile
     working_dir: /app
